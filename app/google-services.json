@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "889147796562",
+    "project_id": "lhhousenoti",
+    "storage_bucket": "lhhousenoti.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889147796562:android:fdfb7905227f0c02a9038b",
+        "android_client_info": {
+          "package_name": "com.sooyeon.lhhousenoti"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "889147796562-jd4aajikdah01bsk32ebvp30cb4ni6lm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAxM54GwP9XvJTbGQJaU5tvW6ix6OLx3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "889147796562-jd4aajikdah01bsk32ebvp30cb4ni6lm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "889147796562-mtcoj7gplc44d6bmq1ckpj4m5a6u64bi.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sooyeon.lhhousenoti"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
