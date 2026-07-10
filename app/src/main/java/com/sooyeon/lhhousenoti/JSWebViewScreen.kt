@@ -2,6 +2,9 @@ package com.sooyeon.lhhousenoti
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -16,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import com.sooyeon.lhhousenoti.Manager.NotificationManager
+import com.sooyeon.lhhousenoti.Model.LHHouseModel
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -129,7 +134,8 @@ private const val REINFORCE_HIDE_JS = """
 """
 
 private class AndroidBridge(
-    private val onAction: (action: String, body: JSONObject) -> Unit,
+    private val webView: WebView,
+    private val onAction: (action: String, body: JSONObject?, webView: WebView) -> Unit,
 ) {
     @JavascriptInterface
     @Suppress("unused")
@@ -138,8 +144,21 @@ private class AndroidBridge(
             val json = JSONObject(message)
             val action = json.optString("action", "")
             if (action.isNotEmpty()) {
-                onAction(action, json)
+                onAction(action, json, webView)
             }
+        }
+    }
+
+    @JavascriptInterface
+    fun deviceInfoReq() {
+        onAction("deviceInfoReq", null, webView)
+    }
+
+    @JavascriptInterface
+    fun openWebView(message: String) {
+        runCatching {
+            val json = JSONObject(message)
+            onAction("openWebView", json, webView)
         }
     }
 }
@@ -148,9 +167,9 @@ private class AndroidBridge(
 @Composable
 fun JSWebViewScreen(
     url: String,
-    onNavigateToDetail: (String) -> Unit,
+    onNavigateToDetail: (LHHouseModel, String) -> Unit,
     onCloseExpandWebView: () -> Unit = {},
-    onOpenHouseDetail: (String) -> Unit = {}
+    onOpenHouseDetail: (LHHouseModel) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -186,19 +205,23 @@ fun JSWebViewScreen(
                 webChromeClient = WebChromeClient()
 
                 addJavascriptInterface(
-                    AndroidBridge { action, body ->
+                    AndroidBridge(this) { action, body, view ->
                         handleBridgeAction(
+                            context = context,
                             action = action,
                             body = body,
+                            webView = view, // 여기서 받은 view를 handleBridgeAction으로 전달
+                            onNavigateToDetail = onNavigateToDetail,
                             onCloseExpandWebView = onCloseExpandWebView,
                             onOpenHouseDetail = onOpenHouseDetail,
-                        ) { params -> openDocViewer(context, params) }
+                            onOpenDocViewer = { params -> openDocViewer(context, params) }
+                        )
                     },
                     "AndroidBridge"
                 )
 
                 webViewClient = object : WebViewClient() {
-                    override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: android.graphics.Bitmap?) {
+                    override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, pageUrl, favicon)
                         view?.evaluateJavascript(INJECTED_JS, null)
                     }
@@ -213,11 +236,11 @@ fun JSWebViewScreen(
                         view: WebView?,
                         request: WebResourceRequest?
                     ): Boolean {
-                        val requestUrl = request?.url?.toString() ?: ""
-                        if (requestUrl.contains("detail")) {
-                            onNavigateToDetail(requestUrl)
-                            return true
-                        }
+//                        val requestUrl = request?.url?.toString() ?: ""
+//                        if (requestUrl.contains("detail")) {
+//                            onNavigateToDetail(requestUrl)
+//                            return true
+//                        }
                         return false
                     }
                 }
@@ -235,23 +258,41 @@ fun JSWebViewScreen(
 }
 
 private fun handleBridgeAction(
+    context: Context,
     action: String,
-    body: JSONObject,
+    body: JSONObject?,
+    webView: WebView,
+    onNavigateToDetail: (LHHouseModel, String) -> Unit,
     onCloseExpandWebView: () -> Unit,
-    onOpenHouseDetail: (String) -> Unit,
+    onOpenHouseDetail: (LHHouseModel) -> Unit,
     onOpenDocViewer: (List<String>) -> Unit
 ) {
     when (action) {
         "clickHeaderBackButton" -> onCloseExpandWebView()
         "clickSaveItrPan" -> { }
         "clickDocViewer" -> {
-            val paramsArray: JSONArray? = body.optJSONArray("params")
+            val paramsArray: JSONArray? = body?.optJSONArray("params")
             if (paramsArray != null && (paramsArray.length() > 2)) {
                 val params = (0 until paramsArray.length()).map { paramsArray.optString(it) }
                 onOpenDocViewer(params)
             }
         }
-        "openWebView" -> onOpenHouseDetail(body.toString())
+        "openWebView" -> {
+            body?.let {
+                LHHouseModel.fromJson(it.toString())?.let { model ->
+                    onOpenHouseDetail(model)
+
+                    val requestUrl = model.dtlUrl ?: ""
+ //                   if (requestUrl.contains("detail")) {
+                        onNavigateToDetail(model, requestUrl)
+ //                   }
+
+                }
+            }
+        }
+        "deviceInfoReq" -> {
+            sendDeviceInfoToWeb(context, webView)
+        }
     }
 }
 
@@ -266,4 +307,23 @@ private fun openDocViewer(context: Context, params: List<String>) {
 
     val customTabsIntent = CustomTabsIntent.Builder().build()
     customTabsIntent.launchUrl(context, urlString.toUri())
+}
+
+private fun sendDeviceInfoToWeb(context: Context, webView: WebView) {
+    NotificationManager.getPushToken { token ->
+        val uuid = DeviceIdentifier.getDeviceUUID(context)
+        val ostype = "a"
+        val modelname = Build.MODEL
+        val detailmodelname = Build.PRODUCT
+        val safeToken = token ?: ""
+
+        webView.post {
+            // iOS처럼 5개의 인자를 각각 따옴표로 감싸서 전달
+            val script = "javascript:if(window.receiveDeviceInfo) { " +
+                    "window.receiveDeviceInfo('$uuid', '$safeToken', '$ostype', '$modelname', '$detailmodelname'); " +
+                    "}"
+
+            webView.evaluateJavascript(script, null)
+        }
+    }
 }

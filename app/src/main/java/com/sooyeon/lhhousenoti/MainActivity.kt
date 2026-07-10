@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.google.android.datatransport.BuildConfig
+import android.webkit.WebView
 
 class MainActivity : ComponentActivity() {
     // SwiftUI의 JSWebViewModel 역할
@@ -18,6 +20,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if(BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
         setContent {
             MaterialTheme {
 //                MainTabView(viewModel)
@@ -108,7 +115,7 @@ fun MainTabView() {
             composable(Screen.Home.route) {
                 JSWebViewScreen(
                     url = "https://lhhousenoti.web.app",
-                    onNavigateToDetail = { url ->
+                    onNavigateToDetail = { lhhouseModel, url ->
                         navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
                     }
                 )
