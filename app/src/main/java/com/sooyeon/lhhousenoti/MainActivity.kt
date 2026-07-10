@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -115,7 +117,8 @@ fun MainTabView() {
             composable(Screen.Home.route) {
                 JSWebViewScreen(
                     url = "https://lhhousenoti.web.app",
-                    onNavigateToDetail = { lhhouseModel, url ->
+                    onNavigateToDetail = { _, url ->
+                        android.util.Log.d("MainActivity", "onNavigateToDetail called with url: $url")
                         navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
                     }
                 )
@@ -149,6 +152,7 @@ fun MainTabView() {
 
             // 5. 공통 상세 화면 (SwiftUI의 ExpandWebView)
             // 하단 탭바 영역 밖으로 푸시되는 효과를 위해 NavHost 바로 아래에 둡니다.
+            @OptIn(ExperimentalMaterial3Api::class)
             composable(
                 route = Screen.Detail.route,
                 arguments = listOf(
@@ -159,11 +163,34 @@ fun MainTabView() {
                 val dtlUrl = backStackEntry.arguments?.getString("dtlUrl") ?: ""
                 val isAlarmRead = backStackEntry.arguments?.getBoolean("isAlarmRead") ?: false
 
-//                ExpandWebViewScreen(
-//                    dtlUrl = dtlUrl,
-//                    isAlarmRead = isAlarmRead,
-//                    onBack = { navController.popBackStack() }
-//                )
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("상세 보기") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            )
+                        )
+                    }
+                ) { padding ->
+                    JSWebViewScreen(
+                        url = dtlUrl,
+                        modifier = Modifier.padding(padding),
+                        onNavigateToDetail = { _, url ->
+                            navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
+                        },
+                        onCloseExpandWebView = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

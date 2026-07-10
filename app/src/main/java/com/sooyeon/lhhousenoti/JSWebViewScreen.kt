@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -16,6 +17,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
@@ -38,30 +40,13 @@ private const val INJECTED_JS = """
     styleNode.innerHTML = cssRules;
     document.documentElement.appendChild(styleNode);
 
+    // MutationObserver는 스타일 주입만으로 해결되지 않을 때만 최소한으로 사용하거나 일단 제거하여 터치 프리징 방지
+    /*
     var observer = new MutationObserver(function(mutations) {
-        // 스타일 변경 시 루프 방지를 위해 조건부 실행
-        var mNav = document.getElementById('mNav');
-        if (mNav && mNav.style.display !== 'none') {
-            mNav.style.setProperty('display', 'none', 'important');
-            mNav.style.setProperty('visibility', 'hidden', 'important');
-        }
-
-        var header = document.getElementById('header');
-        if (header && header.style.display !== 'none') {
-            header.style.setProperty('display', 'none', 'important');
-            header.style.setProperty('visibility', 'hidden', 'important');
-        }
-
-        if (document.body) {
-            if (document.body.style.paddingBottom !== '0px') document.body.style.setProperty('padding-bottom', '0px', 'important');
-            if (document.body.style.paddingTop !== '0px') document.body.style.setProperty('padding-top', '0px', 'important');
-        }
+        ...
     });
-
-    observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    */
 
     document.addEventListener('click', function(event) {
         var target = event.target;
@@ -167,6 +152,7 @@ private class AndroidBridge(
 @Composable
 fun JSWebViewScreen(
     url: String,
+    modifier: Modifier = Modifier,
     onNavigateToDetail: (LHHouseModel, String) -> Unit,
     onCloseExpandWebView: () -> Unit = {},
     onOpenHouseDetail: (LHHouseModel) -> Unit = {}
@@ -174,7 +160,7 @@ fun JSWebViewScreen(
     val context = LocalContext.current
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         factory = { ctx ->
             WebView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -206,16 +192,18 @@ fun JSWebViewScreen(
 
                 addJavascriptInterface(
                     AndroidBridge(this) { action, body, view ->
-                        handleBridgeAction(
-                            context = context,
-                            action = action,
-                            body = body,
-                            webView = view, // 여기서 받은 view를 handleBridgeAction으로 전달
-                            onNavigateToDetail = onNavigateToDetail,
-                            onCloseExpandWebView = onCloseExpandWebView,
-                            onOpenHouseDetail = onOpenHouseDetail,
-                            onOpenDocViewer = { params -> openDocViewer(context, params) }
-                        )
+                        view.post {
+                            handleBridgeAction(
+                                context = context,
+                                action = action,
+                                body = body,
+                                webView = view,
+                                onNavigateToDetail = onNavigateToDetail,
+                                onCloseExpandWebView = onCloseExpandWebView,
+                                onOpenHouseDetail = onOpenHouseDetail,
+                                onOpenDocViewer = { params -> openDocViewer(context, params) }
+                            )
+                        }
                     },
                     "AndroidBridge"
                 )
@@ -223,24 +211,31 @@ fun JSWebViewScreen(
                 webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, pageUrl, favicon)
+                        Log.d("JSWebViewScreen", "onPageStarted: $pageUrl")
                         view?.evaluateJavascript(INJECTED_JS, null)
+                        view?.visibility = View.GONE
                     }
 
                     override fun onPageFinished(view: WebView?, pageUrl: String?) {
                         super.onPageFinished(view, pageUrl)
+                        Log.d("JSWebViewScreen", "onPageFinished: $pageUrl")
                         view?.evaluateJavascript(INJECTED_JS, null)
                         view?.evaluateJavascript(REINFORCE_HIDE_JS, null)
+                        view?.visibility = View.VISIBLE
                     }
 
                     override fun shouldOverrideUrlLoading(
                         view: WebView?,
                         request: WebResourceRequest?
                     ): Boolean {
-//                        val requestUrl = request?.url?.toString() ?: ""
-//                        if (requestUrl.contains("detail")) {
-//                            onNavigateToDetail(requestUrl)
-//                            return true
-//                        }
+                        val requestUrl = request?.url?.toString() ?: ""
+                        Log.d("JSWebViewScreen", "shouldOverrideUrlLoading: $requestUrl")
+                        
+                        // URL에 dtlUrl이 포함되어 있거나 특정 상세 패턴인 경우 처리
+                        if (requestUrl.contains("dtlUrl=") || requestUrl.contains("detail")) {
+                            onNavigateToDetail(LHHouseModel(), requestUrl)
+                            return true
+                        }
                         return false
                     }
                 }
@@ -278,15 +273,14 @@ private fun handleBridgeAction(
             }
         }
         "openWebView" -> {
+            Log.d("JSWebViewScreen", "openWebView action received: $body")
             body?.let {
                 LHHouseModel.fromJson(it.toString())?.let { model ->
                     onOpenHouseDetail(model)
 
                     val requestUrl = model.dtlUrl ?: ""
- //                   if (requestUrl.contains("detail")) {
-                        onNavigateToDetail(model, requestUrl)
- //                   }
-
+                    Log.d("JSWebViewScreen", "Navigating to detail: $requestUrl")
+                    onNavigateToDetail(model, requestUrl)
                 }
             }
         }
