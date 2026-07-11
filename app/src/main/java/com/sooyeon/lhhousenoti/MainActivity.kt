@@ -3,23 +3,25 @@ package com.sooyeon.lhhousenoti
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.google.android.datatransport.BuildConfig
+import androidx.lifecycle.viewmodel.compose.viewModel
 import android.webkit.WebView
+import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
 
 class MainActivity : ComponentActivity() {
-    // SwiftUI의 JSWebViewModel 역할
-//    private val viewModel: JSWebViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -29,7 +31,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-//                MainTabView(viewModel)
                 MainTabView()
             }
         }
@@ -37,9 +38,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-//fun MainTabView(viewModel: `JSWebViewModel`) {
-fun MainTabView() {
+fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+
+    // 앱 시작 시 Firestore에서 사용자 설정 로드
+    LaunchedEffect(Unit) {
+        viewModel.loadUserSettings(context)
+    }
 
     // 현재 백스택 상태 확인 (어떤 탭이 활성화되어 있는지, 상세 화면인지 판단)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -117,7 +123,8 @@ fun MainTabView() {
             composable(Screen.Home.route) {
                 JSWebViewScreen(
                     url = "https://lhhousenoti.web.app",
-                    onNavigateToDetail = { _, url ->
+                    onNavigateToDetail = { model, url ->
+                        viewModel.selectedHouseModel = model
                         android.util.Log.d("MainActivity", "onNavigateToDetail called with url: $url")
                         navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
                     }
@@ -126,12 +133,13 @@ fun MainTabView() {
 
             // 2. 즐겨찾기 탭
             composable(Screen.Favorites.route) {
-//                FavoritesScreen(
-//                    viewModel = viewModel,
-//                    onNavigateToDetail = { url ->
-//                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
-//                    }
-//                )
+                FavoritesScreen(
+                    viewModel = viewModel,
+                    onNavigateToDetail = { model, url ->
+                        viewModel.selectedHouseModel = model
+                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
+                    }
+                )
             }
 
             // 3. 알림 탭
@@ -147,7 +155,7 @@ fun MainTabView() {
 
             // 4. 설정 탭
             composable(Screen.Settings.route) {
-//                AlarmSettingScreen(viewModel = viewModel)
+                AlarmSettingScreen(viewModel = viewModel)
             }
 
             // 5. 공통 상세 화면 (SwiftUI의 ExpandWebView)
@@ -163,6 +171,14 @@ fun MainTabView() {
                 val dtlUrl = backStackEntry.arguments?.getString("dtlUrl") ?: ""
                 val isAlarmRead = backStackEntry.arguments?.getBoolean("isAlarmRead") ?: false
 
+                // 즐겨찾기 상태 관리
+                val houseInfo by remember(dtlUrl) { 
+                    mutableStateOf(viewModel.getHouseByDtlUrl(dtlUrl)) 
+                }
+                var isFavorite by remember(houseInfo) { 
+                    mutableStateOf(houseInfo?.isFavorite ?: false) 
+                }
+
                 Scaffold(
                     topBar = {
                         TopAppBar(
@@ -172,6 +188,20 @@ fun MainTabView() {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Back"
+                                    )
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { 
+                                    viewModel.selectedHouseModel?.let { model ->
+                                        viewModel.toggleFavorite(model)
+                                        isFavorite = !isFavorite
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = "Favorite",
+                                        tint = if (isFavorite) Color(0xFF050400) else LocalContentColor.current
                                     )
                                 }
                             },
