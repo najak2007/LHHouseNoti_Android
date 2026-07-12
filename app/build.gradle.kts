@@ -68,6 +68,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.config)
 
     // Networking (for React server communication)
     implementation(libs.retrofit)
