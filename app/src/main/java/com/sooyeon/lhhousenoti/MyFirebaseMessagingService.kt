@@ -25,10 +25,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val data = remoteMessage.data
         // React에서 보내는 키값(소문자/카멜케이스)에 맞춰 수정
-        val dtlUrl = data["dtlUrl"] ?: ""
+        val panId = data["panId"] ?: ""
         
         // 메시지를 받은 즉시 Realm에 저장 (isAlarmFlag = true)
-        if (dtlUrl.isNotEmpty()) {
+        if (panId.isNotEmpty()) {
             updateAlarmFlag(data)
         }
 
@@ -39,17 +39,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun updateAlarmFlag(data: Map<String, String>) {
-        val dtlUrl = data["dtlUrl"] ?: ""
+        val panId = data["panId"] ?: ""
         CoroutineScope(Dispatchers.IO).launch {
             val realm = Realm.open(LHRealmConfig.config)
             try {
                 realm.write {
-                    val existing = query<LHHouseInfo>("DTL_URL == $0", dtlUrl).first().find()
+                    val existing = query<LHHouseInfo>("PAN_ID == $0", panId).first().find()
                     if (existing != null) {
                         existing.isAlarmFlag = true
                     } else {
                         copyToRealm(LHHouseInfo().apply {
-                            this.DTL_URL = dtlUrl
+                            this.DTL_URL = data["dtlUrl"] ?: ""
                             this.isAlarmFlag = true
                             this.PAN_NM = data["panNm"] ?: "새로운 공고"
                             this.PAN_ID = data["panId"] ?: ""
@@ -59,10 +59,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                             this.CLSG_DT = data["panClsgDT"] ?: ""
                             this.AIS_TP_CD_NM = data["aisTpCdNm"] ?: ""
                             this.UPP_AIS_TP_CD = data["uppAisTpCd"] ?: ""
+                            this.title = data["title"] ?: ""
+                            this.isFavorite = false
                         })
                     }
                 }
-                Log.d("MyFCM", "Successfully saved to Realm: $dtlUrl")
+                Log.d("MyFCM", "Successfully saved to Realm: $panId")
             } catch (e: Exception) {
                 Log.e("MyFCM", "Error saving to Realm", e)
             } finally {
