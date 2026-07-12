@@ -67,7 +67,7 @@ fun AlarmSettingScreen(viewModel: LHHouseViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
                     val (name1, code1) = splitOption(pair[0])
                     SettingToggleItem(
@@ -110,7 +110,7 @@ fun AlarmSettingScreen(viewModel: LHHouseViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
                     val (name1, code1) = splitOption(pair[0])
                     SettingToggleItem(
@@ -155,7 +155,7 @@ fun AlarmSettingScreen(viewModel: LHHouseViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
                     val (name1, code1) = splitOption(pair[0])
                     SettingToggleItem(

@@ -1,9 +1,15 @@
 package com.sooyeon.lhhousenoti
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
+import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -22,6 +28,16 @@ import android.webkit.WebView
 import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
 
 class MainActivity : ComponentActivity() {
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // 권한 허용됨
+        } else {
+            // 권한 거부됨
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -29,10 +45,48 @@ class MainActivity : ComponentActivity() {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
+        askNotificationPermission()
+
         setContent {
-            MaterialTheme {
-                MainTabView()
+            val viewModel: LHHouseViewModel = viewModel()
+            
+            // 앱 실행 시 또는 새로운 인텐트 발생 시 푸시 데이터 처리
+            LaunchedEffect(intent) {
+                processIntent(intent, viewModel)
             }
+
+            MaterialTheme {
+                MainTabView(viewModel)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun processIntent(intent: Intent, viewModel: LHHouseViewModel) {
+        val extras = intent.extras ?: return
+        val dtlUrl = extras.getString("dtlUrl") ?: extras.getString("DTL_URL")
+        
+        if (dtlUrl != null) {
+            val userInfo = mutableMapOf<String, String>()
+            extras.keySet().forEach { key ->
+                extras.get(key)?.let { userInfo[key] = it.toString() }
+            }
+            userInfo["DTL_URL"] = dtlUrl
+            viewModel.emitPushNotificationEvent(userInfo)
         }
     }
 }
@@ -54,16 +108,22 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
     // SwiftUI의 NotificationCenter 이벤트 수신 (푸시 알림 클릭 등)
     LaunchedEffect(Unit) {
         // ViewModel 등에서 푸시 알림 클릭 이벤트를 Flow로 흘려주면 감지하여 네비게이션 처리
-//        viewModel.pushNotificationEvent.collect { userInfo ->
-//            // 예: 알림 탭으로 이동 후 상세화면 푸시
-//            val dtlUrl = userInfo["DTL_URL"] ?: ""
-//            if (dtlUrl.isNotEmpty()) {
-//                navController.navigate(Screen.Detail.createRoute(dtlUrl, isAlarmRead = true)) {
-//                    popUpTo(Screen.Home.route)
-//                    launchSingleTop = true
-//                }
-//            }
-//        }
+        viewModel.pushNotificationEvent.collect { userInfo ->
+            // 예: 알림 탭으로 이동 후 상세화면 푸시
+            val dtlUrl = userInfo["DTL_URL"] ?: ""
+            if (dtlUrl.isNotEmpty()) {
+                // 알림 탭으로 먼저 이동
+                navController.navigate(Screen.Alarms.route) {
+                    popUpTo(navController.graph.startDestinationId) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                // 그 다음 상세 화면으로 푸시
+                navController.navigate(Screen.Detail.createRoute(dtlUrl, isAlarmRead = true))
+            }
+        }
     }
 
     Scaffold(
@@ -91,15 +151,9 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                             },
                             icon = {
                                 // SwiftUI의 .badge(viewModel.lhhouseAlarms.count) 구현
-//                                if (tab == TabItem.Alarms && viewModel.lhhouseAlarmsCount > 0) {
-//                                    BadgedBox(badge = { Badge { Text("${viewModel.lhhouseAlarmsCount}") } }) {
-//                                        Icon(tab.icon, contentDescription = tab.title)
-//                                    }
-//                                } else {
-//                                    Icon(tab.icon, contentDescription = tab.title)
-//                                }
-                                if (tab == TabItem.Alarms ) {
-                                    BadgedBox(badge = { Badge { Text("2") } }) {
+                                val alarmCount by viewModel.lhhouseAlarmsCount.collectAsState()
+                                if (tab == TabItem.Alarms && alarmCount > 0) {
+                                    BadgedBox(badge = { Badge { Text("$alarmCount") } }) {
                                         Icon(tab.icon, contentDescription = tab.title)
                                     }
                                 } else {
@@ -144,13 +198,14 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
 
             // 3. 알림 탭
             composable(Screen.Alarms.route) {
-//                AlarmReceiveScreen(
-//                    viewModel = viewModel,
-//                    onNavigateToDetail = { url ->
-//                        // 알림을 클릭해서 들어갈 때는 isAlarmReaded = true 처리
-//                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = true))
-//                    }
-//                )
+                AlarmReceiveScreen(
+                    viewModel = viewModel,
+                    onNavigateToDetail = { model, url ->
+                        viewModel.selectedHouseModel = model
+                        // 알림을 클릭해서 들어갈 때는 isAlarmReaded = true 처리
+                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = true))
+                    }
+                )
             }
 
             // 4. 설정 탭
@@ -170,6 +225,13 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
             ) { backStackEntry ->
                 val dtlUrl = backStackEntry.arguments?.getString("dtlUrl") ?: ""
                 val isAlarmRead = backStackEntry.arguments?.getBoolean("isAlarmRead") ?: false
+
+                // 알림을 통해 들어온 경우 읽음 처리
+                if (isAlarmRead) {
+                    LaunchedEffect(dtlUrl) {
+                        viewModel.markAsRead(dtlUrl)
+                    }
+                }
 
                 // 즐겨찾기 상태 관리
                 val houseInfo by remember(dtlUrl) { 
