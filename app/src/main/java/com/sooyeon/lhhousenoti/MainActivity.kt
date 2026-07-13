@@ -22,10 +22,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.google.android.datatransport.BuildConfig
-import androidx.lifecycle.viewmodel.compose.viewModel
-import android.webkit.WebView
+import com.sooyeon.lhhousenoti.Model.LHHouseModel
 import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
+import android.webkit.WebView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.util.Log
 
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -41,7 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if(BuildConfig.DEBUG) {
+        if (0 != (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE)) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
@@ -177,9 +180,9 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
             composable(Screen.Home.route) {
                 JSWebViewScreen(
                     url = "https://lhhousenoti.web.app",
-                    onNavigateToDetail = { model, url ->
+                    onNavigateToDetail = { model: LHHouseModel, url ->
                         viewModel.selectedHouseModel = model
-                        android.util.Log.d("MainActivity", "onNavigateToDetail called with url: $url")
+                        Log.d("MainActivity", "onNavigateToDetail called with url: $url")
                         navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
                     }
                 )
@@ -277,7 +280,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                     JSWebViewScreen(
                         url = dtlUrl,
                         modifier = Modifier.padding(padding),
-                        onNavigateToDetail = { _, url ->
+                        onNavigateToDetail = { _: LHHouseModel, url ->
                             navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
                         },
                         onCloseExpandWebView = { navController.popBackStack() }

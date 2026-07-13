@@ -19,6 +19,7 @@ import com.sooyeon.lhhousenoti.Model.LHHouseModel
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
 import com.google.firebase.messaging.FirebaseMessaging
+import android.util.Log
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -102,7 +103,7 @@ class LHHouseViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("LHHouseViewModel", "Error loading user settings", e)
+                Log.e("LHHouseViewModel", "Error loading user settings", e)
             }
         }
     }
@@ -128,13 +129,13 @@ class LHHouseViewModel : ViewModel() {
             categoryMap[fieldItemName] = true
             if (topicName.isNotEmpty()) {
                 messaging.subscribeToTopic(topicName)
-                    .addOnCompleteListener { if (it.isSuccessful) android.util.Log.d("LHHouseViewModel", "Subscribed: $topicName") }
+                    .addOnCompleteListener { if (it.isSuccessful) Log.d("LHHouseViewModel", "Subscribed: $topicName") }
             }
         } else {
             categoryMap.remove(fieldItemName)
             if (topicName.isNotEmpty()) {
                 messaging.unsubscribeFromTopic(topicName)
-                    .addOnCompleteListener { if (it.isSuccessful) android.util.Log.d("LHHouseViewModel", "Unsubscribed: $topicName") }
+                    .addOnCompleteListener { if (it.isSuccessful) Log.d("LHHouseViewModel", "Unsubscribed: $topicName") }
             }
         }
 
@@ -150,9 +151,9 @@ class LHHouseViewModel : ViewModel() {
                 }
 
                 docRef.set(updateData, SetOptions.merge()).await()
-                android.util.Log.d("LHHouseViewModel", "Firestore updated root field $fieldKey with name $fieldItemName")
+                Log.d("LHHouseViewModel", "Firestore updated root field $fieldKey with name $fieldItemName")
             } catch (e: Exception) {
-                android.util.Log.e("LHHouseViewModel", "Error saving user settings", e)
+                Log.e("LHHouseViewModel", "Error saving user settings", e)
             }
         }
     }
