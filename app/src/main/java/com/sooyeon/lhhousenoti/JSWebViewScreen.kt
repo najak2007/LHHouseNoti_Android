@@ -17,7 +17,6 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
@@ -273,13 +272,12 @@ private fun handleBridgeAction(
             }
         }
         "openWebView" -> {
-            Log.d("JSWebViewScreen", "openWebView action received: $body")
             body?.let {
-                LHHouseModel.fromJson(it.toString())?.let { model ->
-                    onOpenHouseDetail(model)
+                val model = LHHouseModel.fromJson(it.toString()) ?: LHHouseModel()
+                onOpenHouseDetail(model)
 
-                    val requestUrl = model.dtlUrl ?: ""
-                    Log.d("JSWebViewScreen", "Navigating to detail: $requestUrl")
+                val requestUrl = model.dtlUrl ?: ""
+                if (requestUrl.isNotEmpty()) {
                     onNavigateToDetail(model, requestUrl)
                 }
             }
