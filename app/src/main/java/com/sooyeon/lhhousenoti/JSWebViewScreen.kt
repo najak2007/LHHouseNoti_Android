@@ -35,7 +35,8 @@ private const val INJECTED_JS = """
 
     var styleNode = document.createElement('style');
     styleNode.type = 'text/css';
-    var cssRules = '#mNav, #header, .subHeader { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; }';
+    var cssRules = '#mNav, #header, .subHeader { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; } ' +
+                   '* { -webkit-touch-callout: none !important; -webkit-user-select: none !important; }';
     styleNode.innerHTML = cssRules;
     document.documentElement.appendChild(styleNode);
 
@@ -173,6 +174,10 @@ fun JSWebViewScreen(
                 isClickable = true
                 requestFocus()
 
+                // 롱터치 방지
+                isLongClickable = false
+                setOnLongClickListener { true }
+
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -182,9 +187,9 @@ fun JSWebViewScreen(
                     // 추가 설정
                     databaseEnabled = true
                     mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                    builtInZoomControls = true
+                    builtInZoomControls = false // 핀치 줌 방지
                     displayZoomControls = false
-                    setSupportZoom(true)
+                    setSupportZoom(false)      // 줌 기능 비활성화
                 }
 
                 webChromeClient = WebChromeClient()
