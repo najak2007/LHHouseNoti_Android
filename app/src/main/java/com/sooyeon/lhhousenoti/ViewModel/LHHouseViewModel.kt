@@ -1,4 +1,4 @@
-package com.sooyeon.lhhousenoti.ViewModel
+package com.sooyeon.lhhousenoti.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -13,9 +13,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.sooyeon.lhhousenoti.LHRealmConfig
 import com.sooyeon.lhhousenoti.DeviceIdentifier
-import com.sooyeon.lhhousenoti.Manager.RemoteConfigManager
-import com.sooyeon.lhhousenoti.Model.LHHouseInfo
-import com.sooyeon.lhhousenoti.Model.LHHouseModel
+import com.sooyeon.lhhousenoti.manager.RemoteConfigManager
+import com.sooyeon.lhhousenoti.model.LHHouseInfo
+import com.sooyeon.lhhousenoti.model.LHHouseModel
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
 import com.google.firebase.messaging.FirebaseMessaging
@@ -196,7 +196,7 @@ class LHHouseViewModel : ViewModel() {
                     existing.isFavorite = !existing.isFavorite
                 } else {
                     copyToRealm(LHHouseInfo().apply {
-                        this.PAN_ID = model.panId ?: ""
+                        this.PAN_ID = panId
                         this.DTL_URL = model.dtlUrl ?: ""
                         this.title = model.title ?: ""
                         this.CNP_CD_NM = model.cnpCdNm ?: ""
@@ -209,6 +209,19 @@ class LHHouseViewModel : ViewModel() {
                         this.isFavorite = true
                     })
                 }
+            }
+        }
+    }
+
+    /**
+     * 특정 주택의 알림 플래그를 해제합니다.
+     */
+    fun markAsFavorite(panId: String) {
+        viewModelScope.launch {
+            realm.write {
+                val house = query<LHHouseInfo>("PAN_ID == $0", panId).first().find()
+                val isFavorite = house?.isFavorite
+                house?.isFavorite = !isFavorite!!
             }
         }
     }

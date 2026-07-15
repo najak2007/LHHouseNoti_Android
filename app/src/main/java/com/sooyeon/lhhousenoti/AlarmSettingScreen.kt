@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
+import com.sooyeon.lhhousenoti.viewmodel.LHHouseViewModel
 
 @Composable
 fun AlarmSettingScreen(viewModel: LHHouseViewModel) {

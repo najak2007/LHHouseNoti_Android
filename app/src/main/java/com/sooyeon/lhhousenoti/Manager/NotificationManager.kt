@@ -1,4 +1,4 @@
-package com.sooyeon.lhhousenoti.Manager
+package com.sooyeon.lhhousenoti.manager
 
 import com.google.firebase.messaging.FirebaseMessaging
 import android.util.Log

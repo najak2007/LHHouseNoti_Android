@@ -16,10 +16,10 @@ sealed class Screen(val route: String) {
 
     // 상세 화면 Route (SwiftUI의 ExpandWebView 역할)
     // 인자를 전달하기 위해 템플릿 형태로 정의합니다.
-    object Detail : Screen("detail/{dtlUrl}/{isAlarmRead}") {
-        fun createRoute(dtlUrl: String, isAlarmRead: Boolean): String {
+    object Detail : Screen("detail/{dtlUrl}/{isAlarmRead}/{isFavoriteState}") {
+        fun createRoute(dtlUrl: String, isAlarmRead: Boolean, isFavoriteState: Boolean = false): String {
             val encodedUrl = java.net.URLEncoder.encode(dtlUrl, "UTF-8")
-            return "detail/$encodedUrl/$isAlarmRead"
+            return "detail/$encodedUrl/$isAlarmRead/$isFavoriteState"
         }
     }
 }
