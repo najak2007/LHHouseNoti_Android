@@ -1,12 +1,12 @@
-package com.sooyeon.lhhousenoti.Manager
+package com.sooyeon.lhhousenoti.manager
 
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.remoteConfig
-import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import org.json.JSONArray
 
 class RemoteConfigManager {
@@ -36,7 +36,7 @@ class RemoteConfigManager {
     fun fetchRemoteValues(onComplete: (() -> Unit)? = null) {
         remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                Log.d("RemoteConfigManager", "Config params updated: ${task.result}")
+                Log.d("RemoteConfigManager", "Config params updated: ${task.isSuccessful}")
             } else {
                 Log.e("RemoteConfigManager", "Fetch failed")
             }

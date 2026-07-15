@@ -1,4 +1,4 @@
-package com.sooyeon.lhhousenoti.Model
+package com.sooyeon.lhhousenoti.model
 
 import io.realm.kotlin.types.RealmInstant
 import io.realm.kotlin.types.RealmObject

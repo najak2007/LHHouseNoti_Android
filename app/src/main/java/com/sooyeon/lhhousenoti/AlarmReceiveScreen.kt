@@ -19,9 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sooyeon.lhhousenoti.Model.LHHouseInfo
-import com.sooyeon.lhhousenoti.Model.LHHouseModel
-import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
+import com.sooyeon.lhhousenoti.model.LHHouseInfo
+import com.sooyeon.lhhousenoti.model.LHHouseModel
+import com.sooyeon.lhhousenoti.viewmodel.LHHouseViewModel
 
 @Composable
 fun AlarmReceiveScreen(
@@ -60,7 +60,7 @@ fun AlarmReceiveScreen(
                 Text(
                     text = "받은 알림이 없습니다.",
                     color = Color(0xFF7F8C8D),
-                    fontSize = 16.sp
+                    fontSize = 20.sp
                 )
             }
         } else {

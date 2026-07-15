@@ -20,8 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
-import com.sooyeon.lhhousenoti.Manager.NotificationManager
-import com.sooyeon.lhhousenoti.Model.LHHouseModel
+import com.sooyeon.lhhousenoti.manager.NotificationManager
+import com.sooyeon.lhhousenoti.model.LHHouseModel
+import com.sooyeon.lhhousenoti.viewmodel.LHHouseViewModel
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -35,7 +36,7 @@ private const val INJECTED_JS = """
 
     var styleNode = document.createElement('style');
     styleNode.type = 'text/css';
-    var cssRules = '#mNav, #header, .subHeader { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; } ' +
+    var cssRules = '#mNav, #header, .subHeader, .btns.ar, a[href*="saveItrPan"], a[href*="goList"] { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; } ' +
                    '* { -webkit-touch-callout: none !important; -webkit-user-select: none !important; }';
     styleNode.innerHTML = cssRules;
     document.documentElement.appendChild(styleNode);
@@ -62,18 +63,6 @@ private const val INJECTED_JS = """
 
             if (isLHBack || isJsHistoryBack) {
                 window.AndroidBridge.postMessage(JSON.stringify({ action: 'clickHeaderBackButton' }));
-                break;
-            }
-            target = target.parentNode;
-        }
-    }, true);
-
-    document.addEventListener('click', function(event) {
-        var target = event.target;
-        while (target && target !== document) {
-            var href = target.getAttribute ? (target.getAttribute('href') || '') : '';
-            if (href.toLowerCase().includes('javascript:saveitrpan')) {
-                window.AndroidBridge.postMessage(JSON.stringify({ action: 'clickSaveItrPan' }));
                 break;
             }
             target = target.parentNode;
@@ -152,6 +141,7 @@ private class AndroidBridge(
 @Composable
 fun JSWebViewScreen(
     url: String,
+    viewModel: LHHouseViewModel,
     modifier: Modifier = Modifier,
     onNavigateToDetail: (LHHouseModel, String) -> Unit,
     onCloseExpandWebView: () -> Unit = {},
@@ -202,6 +192,7 @@ fun JSWebViewScreen(
                                 action = action,
                                 body = body,
                                 webView = view,
+                                viewModel = viewModel,
                                 onNavigateToDetail = onNavigateToDetail,
                                 onCloseExpandWebView = onCloseExpandWebView,
                                 onOpenHouseDetail = onOpenHouseDetail,
@@ -261,6 +252,7 @@ private fun handleBridgeAction(
     action: String,
     body: JSONObject?,
     webView: WebView,
+    viewModel: LHHouseViewModel,
     onNavigateToDetail: (LHHouseModel, String) -> Unit,
     onCloseExpandWebView: () -> Unit,
     onOpenHouseDetail: (LHHouseModel) -> Unit,
@@ -268,7 +260,17 @@ private fun handleBridgeAction(
 ) {
     when (action) {
         "clickHeaderBackButton" -> onCloseExpandWebView()
-        "clickSaveItrPan" -> { }
+        "clickSaveItrPan" -> {
+            body?.let {
+                val model = LHHouseModel.fromJson(it.toString()) ?: LHHouseModel()
+                onOpenHouseDetail(model)
+
+                val panId = model.panId ?: ""
+                if (panId.isNotEmpty()) {
+                    viewModel.markAsFavorite(panId)
+                }
+            }
+        }
         "clickDocViewer" -> {
             val paramsArray: JSONArray? = body?.optJSONArray("params")
             if (paramsArray != null && (paramsArray.length() > 2)) {

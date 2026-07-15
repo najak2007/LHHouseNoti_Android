@@ -1,6 +1,6 @@
 package com.sooyeon.lhhousenoti
 
-import com.sooyeon.lhhousenoti.Model.LHHouseInfo
+import com.sooyeon.lhhousenoti.model.LHHouseInfo
 import io.realm.kotlin.RealmConfiguration
 
 object LHRealmConfig {

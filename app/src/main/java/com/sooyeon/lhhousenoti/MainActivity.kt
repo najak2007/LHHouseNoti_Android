@@ -22,8 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.sooyeon.lhhousenoti.Model.LHHouseModel
-import com.sooyeon.lhhousenoti.ViewModel.LHHouseViewModel
+import com.sooyeon.lhhousenoti.model.LHHouseModel
+import com.sooyeon.lhhousenoti.viewmodel.LHHouseViewModel
 import android.webkit.WebView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.Context
@@ -32,7 +32,7 @@ import android.util.Log
 
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { isGranted: Boolean ->
         if (isGranted) {
             // 권한 허용됨
@@ -135,7 +135,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
             // 현재 화면이 상세 화면("detail/...")이 아닐 때만 하단 탭바를 보여줍니다.
             if (currentRoute?.startsWith("detail") == false) {
                 NavigationBar {
-                    TabItem.values().forEach { tab ->
+                    TabItem.entries.forEach { tab ->
                         val isSelected = currentRoute == tab.screen.route
 
                         NavigationBarItem(
@@ -156,7 +156,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                                 // SwiftUI의 .badge(viewModel.lhhouseAlarms.count) 구현
                                 val alarmCount by viewModel.lhhouseAlarmsCount.collectAsState()
                                 if (tab == TabItem.Alarms && alarmCount > 0) {
-                                    BadgedBox(badge = { Badge { Text("$alarmCount") } }) {
+                                    BadgedBox(badge = { Badge { Text(alarmCount.toString()) } }) {
                                         Icon(tab.icon, contentDescription = tab.title)
                                     }
                                 } else {
@@ -180,10 +180,11 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
             composable(Screen.Home.route) {
                 JSWebViewScreen(
                     url = "https://lhhousenoti.web.app",
+                    viewModel = viewModel,
                     onNavigateToDetail = { model: LHHouseModel, url ->
                         viewModel.selectedHouseModel = model
                         Log.d("MainActivity", "onNavigateToDetail called with url: $url")
-                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
+                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false, isFavoriteState = viewModel.getHouseByPanId(model.panId ?: "")?.isFavorite ?: false))
                     }
                 )
             }
@@ -194,7 +195,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                     viewModel = viewModel,
                     onNavigateToDetail = { model, url ->
                         viewModel.selectedHouseModel = model
-                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))
+                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false, isFavoriteState = viewModel.getHouseByPanId(model.panId ?: "")?.isFavorite ?: false))
                     }
                 )
             }
@@ -206,7 +207,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                     onNavigateToDetail = { model, url ->
                         viewModel.selectedHouseModel = model
                         // 알림을 클릭해서 들어갈 때는 isAlarmReaded = true 처리
-                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = true))
+                        navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = true, isFavoriteState = viewModel.getHouseByPanId(model.panId ?: "")?.isFavorite ?: false))
                     }
                 )
             }
@@ -223,11 +224,13 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                 route = Screen.Detail.route,
                 arguments = listOf(
                     navArgument("dtlUrl") { type = NavType.StringType },
-                    navArgument("isAlarmRead") { type = NavType.BoolType }
+                    navArgument("isAlarmRead") { type = NavType.BoolType },
+                    navArgument("isFavoriteState") { type = NavType.BoolType },
                 )
             ) { backStackEntry ->
                 val dtlUrl = backStackEntry.arguments?.getString("dtlUrl") ?: ""
                 val isAlarmRead = backStackEntry.arguments?.getBoolean("isAlarmRead") ?: false
+                val isFavoriteState = backStackEntry.arguments?.getBoolean("isFavoriteState") ?: false
 
                 // 알림을 통해 들어온 경우 읽음 처리
                 if (isAlarmRead) {
@@ -237,11 +240,8 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                 }
 
                 // 즐겨찾기 상태 관리
-                val houseInfo by remember(dtlUrl) { 
-                    mutableStateOf(viewModel.getHouseByDtlUrl(dtlUrl)) 
-                }
-                var isFavorite by remember(houseInfo) { 
-                    mutableStateOf(houseInfo?.isFavorite ?: false) 
+                var isFavorite by remember(dtlUrl) {
+                    mutableStateOf(viewModel.getHouseByDtlUrl(dtlUrl)?.isFavorite ?: isFavoriteState)
                 }
 
                 Scaffold(
@@ -279,6 +279,7 @@ fun MainTabView(viewModel: LHHouseViewModel = viewModel()) {
                 ) { padding ->
                     JSWebViewScreen(
                         url = dtlUrl,
+                        viewModel = viewModel,
                         modifier = Modifier.padding(padding),
                         onNavigateToDetail = { _: LHHouseModel, url ->
                             navController.navigate(Screen.Detail.createRoute(url, isAlarmRead = false))

@@ -10,7 +10,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.sooyeon.lhhousenoti.Model.LHHouseInfo
+import com.sooyeon.lhhousenoti.model.LHHouseInfo
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
 import kotlinx.coroutines.CoroutineScope

@@ -1,4 +1,4 @@
-package com.sooyeon.lhhousenoti.Model
+package com.sooyeon.lhhousenoti.model
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
