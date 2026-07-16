@@ -36,7 +36,7 @@ private const val INJECTED_JS = """
 
     var styleNode = document.createElement('style');
     styleNode.type = 'text/css';
-    var cssRules = '#mNav, #header, .subHeader, .btns.ar, a[href*="saveItrPan"], a[href*="goList"] { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; } ' +
+    var cssRules = '#mNav, #header, .subHeader, #slpaHistory, .btns.ar, a[href*="saveItrPan"], a[href*="goList"] { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; height: 0 !important; width: 0 !important; } ' +
                    '* { -webkit-touch-callout: none !important; -webkit-user-select: none !important; }';
     styleNode.innerHTML = cssRules;
     document.documentElement.appendChild(styleNode);
@@ -314,7 +314,7 @@ private fun sendDeviceInfoToWeb(context: Context, webView: WebView) {
         val ostype = "a"
         val modelname = Build.MODEL
         val detailmodelname = Build.PRODUCT
-        val safeToken = token ?: ""
+        val safeToken = token
 
         webView.post {
             // iOS처럼 5개의 인자를 각각 따옴표로 감싸서 전달
